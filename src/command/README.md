@@ -20,6 +20,11 @@
 
 ## Ref
 
+>
+> <https://refactoring.guru/design-patterns/command>
+>
+> <https://zenn.dev/morinokami/books/learning-patterns-1/viewer/command-pattern>
+>
 > <https://ja.wikipedia.org/wiki/Command_%E3%83%91%E3%82%BF%E3%83%BC%E3%83%B3>
 >
 > <https://keens.github.io/blog/2017/05/06/rustkazenidezainpata_n23tane/>

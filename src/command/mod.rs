@@ -4,8 +4,7 @@ pub trait Command<Target> {
     fn execute(&self,target: &mut Target);
 }
 
-///Invoker
-pub struct MacroCommand<'a,Cmd,Target> 
+pub struct Invoker<'a,Cmd,Target> 
 where
     Cmd: Command<Target>
 {
@@ -14,12 +13,12 @@ where
     index: usize
 }
 
-impl<'a,Cmd,Target> MacroCommand<'a,Cmd,Target> 
+impl<'a,Cmd,Target> Invoker<'a,Cmd,Target> 
 where
     Cmd: Command<Target>
 {
     pub fn new(target:&'a mut Target) -> Self {
-        MacroCommand { commands: Vec::new(), target, index: 0 }
+        Invoker { commands: Vec::new(), target, index: 0 }
     }
     pub fn target(&self) -> &Target {
         &self.target
@@ -53,8 +52,8 @@ mod test {
     use super::*;
 
     #[derive(Debug,PartialEq)]
-    struct Printer {
-        document:String,
+    struct Document {
+        text:String,
         amount:usize
     }
 
@@ -62,12 +61,12 @@ mod test {
         PrintJob(String,usize),
         Alert(String)
     }
-    impl Command<Printer> for PrinterCommand {
-        fn execute(&self,target: &mut Printer) {
+    impl Command<Document> for PrinterCommand {
+        fn execute(&self,target: &mut Document) {
             use PrinterCommand::*;
             match self {
                 PrintJob(doc,size) => {
-                    target.document = doc.clone();
+                    target.text = doc.clone();
                     target.amount = *size;
                     println!("{} documents[{}] was printed ",doc,size)
                 }
@@ -80,24 +79,26 @@ mod test {
 
     #[test]
     fn main() {
-        let mut printer = Printer {
-            document:"".to_owned(),
+        let mut docment = Document {
+            text:"".to_owned(),
             amount:30
         };
-        let mut invoker = MacroCommand::new(&mut printer);
+        let mut printer = Invoker::new(&mut docment);
         {
             use PrinterCommand::*;
-            invoker.append(PrintJob("Glory to Arstotzka".to_owned(),30));
-            invoker.append(PrintJob("GOOD-JOB".to_owned(),1));
+            printer.append(PrintJob("Glory to Arstotzka".to_owned(),30));
+            printer.append(Alert("Confirmication".to_owned()));
+            printer.append(PrintJob("GOOD-JOB".to_owned(),1));
         }
-        invoker.execute().unwrap();
-        assert_eq!(*invoker.target(),Printer {
-            document:"Glory to Arstotzka".to_owned(),
+        printer.execute().unwrap();
+        assert_eq!(*printer.target(),Document {
+            text:"Glory to Arstotzka".to_owned(),
             amount:30
         });
-        invoker.execute().unwrap();
-        assert_eq!(*invoker.target(),Printer {
-            document:"GOOD-JOB".to_owned(),
+        printer.execute().unwrap();
+        printer.execute().unwrap();
+        assert_eq!(*printer.target(),Document {
+            text:"GOOD-JOB".to_owned(),
             amount:1
         });
     }

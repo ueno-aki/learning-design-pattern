@@ -1,48 +1,50 @@
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 
 pub trait Command<Target> {
-    fn execute(&self,target: &mut Target);
+    fn execute(&self, target: &mut Target);
 }
 
-pub struct Invoker<'a,Cmd,Target> 
+pub struct Invoker<'a, Cmd, Target>
 where
-    Cmd: Command<Target>
+    Cmd: Command<Target>,
 {
     commands: Vec<Cmd>,
-    target:&'a mut Target,
-    index: usize
+    target: &'a mut Target,
+    index: usize,
 }
 
-impl<'a,Cmd,Target> Invoker<'a,Cmd,Target> 
+impl<'a, Cmd, Target> Invoker<'a, Cmd, Target>
 where
-    Cmd: Command<Target>
+    Cmd: Command<Target>,
 {
-    pub fn new(target:&'a mut Target) -> Self {
-        Invoker { commands: Vec::new(), target, index: 0 }
+    pub fn new(target: &'a mut Target) -> Self {
+        Invoker {
+            commands: Vec::new(),
+            target,
+            index: 0,
+        }
     }
     pub fn target(&self) -> &Target {
         &self.target
     }
 
-    pub fn execute(&mut self) -> Result<()>{
+    pub fn execute(&mut self) -> Result<()> {
         if self.commands.len() <= self.index {
             Err(anyhow!("Commands Stack was done."))
-        }
-        else {
+        } else {
             let command = &self.commands[self.index];
             let target = &mut self.target;
             command.execute(target);
             self.index += 1;
             Ok(())
         }
-
     }
     pub fn execute_all(&mut self) {
-        for _ in self.index .. self.commands.len() {
-        self.execute().unwrap();
+        for _ in self.index..self.commands.len() {
+            self.execute().unwrap();
         }
     }
-    pub fn append(&mut self,command:Cmd) {
+    pub fn append(&mut self, command: Cmd) {
         self.commands.push(command);
     }
 }
@@ -51,24 +53,24 @@ where
 mod test {
     use super::*;
 
-    #[derive(Debug,PartialEq)]
+    #[derive(Debug, PartialEq)]
     struct Document {
-        text:String,
-        amount:usize
+        text: String,
+        amount: usize,
     }
 
     enum PrinterCommand {
-        PrintJob(String,usize),
-        Alert(String)
+        PrintJob(String, usize),
+        Alert(String),
     }
     impl Command<Document> for PrinterCommand {
-        fn execute(&self,target: &mut Document) {
+        fn execute(&self, target: &mut Document) {
             use PrinterCommand::*;
             match self {
-                PrintJob(doc,size) => {
+                PrintJob(doc, size) => {
                     target.text = doc.clone();
                     target.amount = *size;
-                    println!("{} documents[{}] was printed ",doc,size)
+                    println!("{} documents[{}] was printed ", doc, size)
                 }
                 Alert(str) => {
                     println!("[Alert]'{str}'")
@@ -80,26 +82,32 @@ mod test {
     #[test]
     fn main() {
         let mut docment = Document {
-            text:"".to_owned(),
-            amount:30
+            text: "".to_owned(),
+            amount: 30,
         };
         let mut printer = Invoker::new(&mut docment);
         {
             use PrinterCommand::*;
-            printer.append(PrintJob("Glory to Arstotzka".to_owned(),30));
+            printer.append(PrintJob("Glory to Arstotzka".to_owned(), 30));
             printer.append(Alert("Confirmication".to_owned()));
-            printer.append(PrintJob("GOOD-JOB".to_owned(),1));
+            printer.append(PrintJob("GOOD-JOB".to_owned(), 1));
         }
         printer.execute().unwrap();
-        assert_eq!(*printer.target(),Document {
-            text:"Glory to Arstotzka".to_owned(),
-            amount:30
-        });
+        assert_eq!(
+            *printer.target(),
+            Document {
+                text: "Glory to Arstotzka".to_owned(),
+                amount: 30
+            }
+        );
         printer.execute().unwrap();
         printer.execute().unwrap();
-        assert_eq!(*printer.target(),Document {
-            text:"GOOD-JOB".to_owned(),
-            amount:1
-        });
+        assert_eq!(
+            *printer.target(),
+            Document {
+                text: "GOOD-JOB".to_owned(),
+                amount: 1
+            }
+        );
     }
 }

@@ -27,7 +27,7 @@ where
 
     pub fn execute(&mut self) -> Result<()>{
         if self.commands.len() <= self.index {
-            Err(anyhow!("Commands Stack was done"))
+            Err(anyhow!("Commands Stack was done."))
         }
         else {
             let command = &self.commands[self.index];
@@ -60,6 +60,7 @@ mod test {
 
     enum PrinterCommand {
         PrintJob(String,usize),
+        Alert(String)
     }
     impl Command<Printer> for PrinterCommand {
         fn execute(&self,target: &mut Printer) {
@@ -69,6 +70,9 @@ mod test {
                     target.document = doc.clone();
                     target.amount = *size;
                     println!("{} documents[{}] was printed ",doc,size)
+                }
+                Alert(str) => {
+                    println!("[Alert]'{str}'")
                 }
             }
         }

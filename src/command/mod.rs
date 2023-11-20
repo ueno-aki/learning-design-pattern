@@ -50,19 +50,24 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[derive(Debug,PartialEq)]
     struct Printer {
         document:String,
         amount:usize
     }
+
     enum PrinterCommand {
-        PrintJob
+        PrintJob(String,usize),
     }
     impl Command<Printer> for PrinterCommand {
         fn execute(&self,target: &mut Printer) {
             use PrinterCommand::*;
             match self {
-                PrintJob => {
-                    println!("{} documents[{}] was printed ",target.amount,target.document)
+                PrintJob(doc,size) => {
+                    target.document = doc.clone();
+                    target.amount = *size;
+                    println!("{} documents[{}] was printed ",doc,size)
                 }
             }
         }
@@ -71,16 +76,24 @@ mod test {
     #[test]
     fn main() {
         let mut printer = Printer {
-            document:"20XX-12-25".to_owned(),
+            document:"".to_owned(),
             amount:30
         };
         let mut invoker = MacroCommand::new(&mut printer);
         {
             use PrinterCommand::*;
-            invoker.append(PrintJob);
-            invoker.append(PrintJob);
-            invoker.append(PrintJob);
+            invoker.append(PrintJob("Glory to Arstotzka".to_owned(),30));
+            invoker.append(PrintJob("GOOD-JOB".to_owned(),1));
         }
-        invoker.execute_all();
+        invoker.execute().unwrap();
+        assert_eq!(*invoker.target(),Printer {
+            document:"Glory to Arstotzka".to_owned(),
+            amount:30
+        });
+        invoker.execute().unwrap();
+        assert_eq!(*invoker.target(),Printer {
+            document:"GOOD-JOB".to_owned(),
+            amount:1
+        });
     }
 }

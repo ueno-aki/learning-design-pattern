@@ -5,28 +5,26 @@ pub trait Command<Target> {
 }
 
 ///Invoker
-pub struct MacroCommand<'a,Cmd,Target> {
+pub struct MacroCommand<'a,Cmd,Target> 
+where
+    Cmd: Command<Target>
+{
     commands: Vec<Cmd>,
     target:&'a mut Target,
     index: usize
-}
-
-impl<'a,Cmd,Target> MacroCommand<'a,Cmd,Target> {
-    pub fn new(target:&'a mut Target) -> Self {
-        MacroCommand { commands: Vec::new(), target, index: 0 }
-    }
-    pub fn target(&self) -> &Target {
-        &self.target
-    }
-    pub fn append(&mut self,command:Cmd) {
-        self.commands.push(command);
-    }
 }
 
 impl<'a,Cmd,Target> MacroCommand<'a,Cmd,Target> 
 where
     Cmd: Command<Target>
 {
+    pub fn new(target:&'a mut Target) -> Self {
+        MacroCommand { commands: Vec::new(), target, index: 0 }
+    }
+    pub fn target(&self) -> &Target {
+        &self.target
+    }
+
     pub fn execute(&mut self) -> Result<()>{
         if self.commands.len() <= self.index {
             Err(anyhow!("Commands Stack was done"))
@@ -44,6 +42,9 @@ where
         for _ in self.index .. self.commands.len() {
         self.execute().unwrap();
         }
+    }
+    pub fn append(&mut self,command:Cmd) {
+        self.commands.push(command);
     }
 }
 

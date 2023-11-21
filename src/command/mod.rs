@@ -40,12 +40,18 @@ where
         }
     }
     pub fn execute_all(&mut self) {
-        for _ in self.index..self.commands.len() {
-            self.execute().unwrap();
+        loop {
+            if let Err(_) = self.execute() {
+                break;
+            }    
         }
     }
     pub fn append(&mut self, command: Cmd) {
         self.commands.push(command);
+    }
+    pub fn clear(&mut self) {
+        self.commands.clear();
+        self.index = 0;
     }
 }
 

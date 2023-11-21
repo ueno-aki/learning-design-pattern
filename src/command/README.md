@@ -23,6 +23,8 @@
 >
 > <https://refactoring.guru/design-patterns/command>
 >
+> <https://betterprogramming.pub/utilizing-the-command-pattern-to-support-undo-redo-and-history-of-operations-b28fa9d58910>
+>
 > <https://zenn.dev/morinokami/books/learning-patterns-1/viewer/command-pattern>
 >
 > <https://ja.wikipedia.org/wiki/Command_%E3%83%91%E3%82%BF%E3%83%BC%E3%83%B3>

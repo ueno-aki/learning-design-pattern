@@ -4,6 +4,8 @@
 >
 >リクエストのために必要な手続きとデータをCommandオブジェクトとしてカプセル化した上で取り回し、必要に応じてExecute（実行）するパターンである。オブジェクトであることを生かして命令のキューイングやロギング、Undo等が可能になり、Executeを分離したことで手続きと実行を疎結合にできる
 
+![cmd_pattern](https://github.com/ueno-aki/learning-design-pattern/assets/111332986/dd875af0-6340-4fce-bc8e-81278149afe1)
+
 ## 定義
 
 1. 処理をメソッドとして内包するCommandクラスの定義

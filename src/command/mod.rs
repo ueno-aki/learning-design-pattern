@@ -2,24 +2,25 @@ use anyhow::{anyhow, Result};
 
 pub trait Command<Target> {
     fn execute(&self, target: &mut Target);
+    fn undo(&self,target:&mut Target);
 }
 
-pub struct Invoker<'a, Cmd, Target>
+pub struct CommandManager<'a, Cmd, Target>
 where
     Cmd: Command<Target>,
 {
-    commands: Vec<Cmd>,
+    queue_stack: Vec<Cmd>,
     target: &'a mut Target,
     index: usize,
 }
 
-impl<'a, Cmd, Target> Invoker<'a, Cmd, Target>
+impl<'a, Cmd, Target> CommandManager<'a, Cmd, Target>
 where
     Cmd: Command<Target>,
 {
     pub fn new(target: &'a mut Target) -> Self {
-        Invoker {
-            commands: Vec::new(),
+        CommandManager {
+            queue_stack: Vec::new(),
             target,
             index: 0,
         }
@@ -29,13 +30,13 @@ where
     }
 
     pub fn execute(&mut self) -> Result<()> {
-        if self.commands.len() <= self.index {
-            Err(anyhow!("Commands Stack was done."))
+        if self.queue_stack.len() <= self.index {
+            Err(anyhow!("Done"))
         } else {
-            let command = &self.commands[self.index];
+            let command = &self.queue_stack[self.index];
             let target = &mut self.target;
-            command.execute(target);
             self.index += 1;
+            command.execute(target);
             Ok(())
         }
     }
@@ -46,11 +47,22 @@ where
             }    
         }
     }
+    pub fn undo(&mut self) -> Result<()> {
+        if 0 == self.index {
+            return Err(anyhow!("Cannot go back"))
+        } else {
+            self.index -= 1;
+            let c = &self.queue_stack[self.index];
+            let t = &mut *self.target;
+            c.undo(t);
+            Ok(())
+        }
+    }
     pub fn append(&mut self, command: Cmd) {
-        self.commands.push(command);
+        self.queue_stack.push(command);
     }
     pub fn clear(&mut self) {
-        self.commands.clear();
+        self.queue_stack.clear();
         self.index = 0;
     }
 }
@@ -58,61 +70,111 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-
     #[derive(Debug, PartialEq)]
-    struct Document {
-        text: String,
-        amount: usize,
+    struct Actor {
+        x:i64,
+        y:i64,
+        dx:i64,
+        dy:i64
     }
-
-    enum PrinterCommand {
-        PrintJob(String, usize),
-        Alert(String),
+    impl Actor {
+        pub fn new() -> Self{
+            Actor {x: 0, y: 0, dx: 1, dy: 0 }
+        }
+        pub fn go_forward(&mut self) {
+            self.x += self.dx;
+            self.y += self.dy;
+        }
+        pub fn set_velocity(&mut self,v:(i64,i64)) {
+            self.dx = v.0;
+            self.dy = v.1;
+        }
+        pub fn get_velocity(&mut self) -> (i64,i64){
+            (self.dx,self.dy)
+        }
     }
-    impl Command<Document> for PrinterCommand {
-        fn execute(&self, target: &mut Document) {
-            use PrinterCommand::*;
+    enum ActorCommand {
+        GoForward,
+        TurnRight,
+        TurnLeft,
+    }
+    impl Command<Actor> for ActorCommand {
+        fn execute(&self, target: &mut Actor) {
+            use ActorCommand::*;
             match self {
-                PrintJob(doc, size) => {
-                    target.text = doc.clone();
-                    target.amount = *size;
-                    println!("{} documents[{}] was printed ", doc, size)
+                GoForward => {
+                    target.go_forward();
                 }
-                Alert(str) => {
-                    println!("[Alert]'{str}'")
+                TurnRight => {
+                    let (dx,dy) = target.get_velocity();
+                    target.set_velocity((dy,-dx));
+                },
+                TurnLeft => {
+                    let (dx,dy) = target.get_velocity();
+                    target.set_velocity((-dy,dx));
+                }
+            }
+        }
+        fn undo(&self,target:&mut Actor) {
+            use ActorCommand::*;
+            match self {
+                GoForward => {
+                    let cmd = TurnRight;
+                    cmd.execute(target);
+                    cmd.execute(target);
+                    self.execute(target);
+                    cmd.execute(target);
+                    cmd.execute(target);
+                }
+                TurnRight => {
+                    let cmd = TurnLeft;
+                    cmd.execute(target);
+                },
+                TurnLeft => {
+                    let cmd = TurnRight;
+                    cmd.execute(target);
                 }
             }
         }
     }
-
     #[test]
     fn main() {
-        let mut docment = Document {
-            text: "".to_owned(),
-            amount: 30,
-        };
-        let mut printer = Invoker::new(&mut docment);
+        let mut actor = Actor::new();
+        let mut invoker = CommandManager::new(&mut actor);
         {
-            use PrinterCommand::*;
-            printer.append(PrintJob("Glory to Arstotzka".to_owned(), 30));
-            printer.append(Alert("Confirmication".to_owned()));
-            printer.append(PrintJob("GOOD-JOB".to_owned(), 1));
+            use ActorCommand::*;
+            invoker.append(GoForward);
+            invoker.append(TurnRight);
+            invoker.append(GoForward);
         }
-        printer.execute().unwrap();
+        invoker.execute().unwrap();
         assert_eq!(
-            *printer.target(),
-            Document {
-                text: "Glory to Arstotzka".to_owned(),
-                amount: 30
+            *invoker.target,
+            Actor {
+                x:1,
+                y:0,
+                dx:1,
+                dy:0
             }
         );
-        printer.execute().unwrap();
-        printer.execute().unwrap();
+        invoker.execute_all();
         assert_eq!(
-            *printer.target(),
-            Document {
-                text: "GOOD-JOB".to_owned(),
-                amount: 1
+            *invoker.target,
+            Actor {
+                x:1,
+                y:-1,
+                dx:0,
+                dy:-1
+            }
+        );
+        invoker.undo().unwrap();
+        assert_eq!(
+            *invoker.target,
+            Actor {
+                x:1,
+                y:0,
+                dx:0,
+                dy:-1
             }
         );
     }

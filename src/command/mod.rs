@@ -130,7 +130,7 @@ mod test {
         }
     }
     struct Teleport {
-        pub position: (i64, i64),
+        position: (i64, i64),
         prev: Option<(i64, i64)>,
     }
     impl Teleport {
@@ -157,7 +157,7 @@ mod test {
         }
     }
     struct Rename {
-        pub name: &'static str,
+        name: &'static str,
         prev: Option<&'static str>,
     }
     impl Rename {

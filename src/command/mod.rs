@@ -93,6 +93,8 @@ mod test {
         }
     }
 
+    //enumの中に構造体入れた方が動的ディスパッチより多分速い
+
     struct GoForward;
     impl Command<Actor> for GoForward {
         fn execute(&mut self, target: &mut Actor) {

@@ -1,3 +1,5 @@
+mod receiver;
+
 use anyhow::{anyhow, Result};
 
 pub trait Command<Target> {

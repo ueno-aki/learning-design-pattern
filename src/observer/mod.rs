@@ -1,30 +1,34 @@
-trait Subject<T: Clone> {
+trait EventManager<T> {
     fn notify_observers(&self, obj: &T);
-    fn register_observer(&mut self, observer: Box<dyn Observer<T>>) -> usize;
-    fn unregister_observer(&mut self, id: usize);
+    fn subscribe(&mut self, observer: Box<dyn Observer<T>>) -> usize;
+    fn unsubscribe(&mut self, id: usize);
 }
 
-trait Observer<T: Clone> {
+trait Observer<T> {
     fn on_notify(&self, obj: &T);
 }
 
-#[derive(Debug, Clone)]
-struct EventObject(usize);
+#[derive(Debug)]
+struct RandomNumber(usize);
 
-struct SubjectX {
-    observers: Vec<(bool, Box<dyn Observer<EventObject>>)>,
+struct RandomNumEvent {
+    observers: Vec<(bool, Box<dyn Observer<RandomNumber>>)>,
 }
 
-impl SubjectX {
-    fn new() -> SubjectX {
-        SubjectX {
+impl RandomNumEvent {
+    fn new() -> RandomNumEvent {
+        RandomNumEvent {
             observers: Vec::new(),
         }
     }
+    fn execute(&self) {
+        let num: usize = rand::random();
+        self.notify_observers(&RandomNumber(num))
+    }
 }
 
-impl Subject<EventObject> for SubjectX {
-    fn notify_observers(&self, obj: &EventObject) {
+impl EventManager<RandomNumber> for RandomNumEvent {
+    fn notify_observers(&self, obj: &RandomNumber) {
         for observer in self.observers.iter() {
             if observer.0 {
                 observer.1.on_notify(obj);
@@ -32,30 +36,37 @@ impl Subject<EventObject> for SubjectX {
         }
     }
 
-    fn register_observer(&mut self, observer: Box<dyn Observer<EventObject>>) -> usize {
+    fn subscribe(&mut self, observer: Box<dyn Observer<RandomNumber>>) -> usize {
         self.observers.push((true, observer));
         self.observers.len() - 1
     }
 
-    fn unregister_observer(&mut self, id: usize) {
+    fn unsubscribe(&mut self, id: usize) {
         self.observers[id].0 = false
     }
 }
 
-struct ObserverX(usize);
-impl Observer<EventObject> for ObserverX {
-    fn on_notify(&self, obj: &EventObject) {
-        println!("ObserverX {} Get {:?}", self.0, obj);
+struct BitObserver;
+impl Observer<RandomNumber> for BitObserver {
+    fn on_notify(&self, obj: &RandomNumber) {
+        println!("BitObserver Get 0b{:b}", obj.0);
+    }
+}
+struct HexObserver;
+impl Observer<RandomNumber> for HexObserver {
+    fn on_notify(&self, obj: &RandomNumber) {
+        println!("HexObserver Get 0x{:x}", obj.0);
     }
 }
 
 #[test]
 fn main() {
-    let mut subject = SubjectX::new();
-    subject.register_observer(Box::new(ObserverX(1)));
-    subject.register_observer(Box::new(ObserverX(2)));
-    subject.register_observer(Box::new(ObserverX(3)));
+    let mut subject = RandomNumEvent::new();
+    let bit_observer = subject.subscribe(Box::new(BitObserver));
+    let _ = subject.subscribe(Box::new(HexObserver));
 
-    subject.notify_observers(&EventObject(100));
-    subject.notify_observers(&EventObject(20));
+    subject.execute();
+
+    subject.unsubscribe(bit_observer);
+    subject.execute();
 }
